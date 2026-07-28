@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 const STATUS_OPTIONS = ["Awaiting Files", "Ready for Editing", "Complete"];
 const STATUS_LABELS = {
@@ -194,7 +195,7 @@ function ProjectCard({ project, password, onStatusChange }) {
         </div>
       )}
 
-      {selectedAttachment && (
+      {selectedAttachment && createPortal(
         <div className="lightbox" role="dialog" aria-modal="true" aria-label="Project attachment">
           <button className="lightbox-backdrop" onClick={() => setSelectedAttachment(null)} aria-label="Close attachment" />
           <div className="lightbox-content">
@@ -208,7 +209,8 @@ function ProjectCard({ project, password, onStatusChange }) {
             </div>
             {selectedAttachment.filename && <p>{selectedAttachment.filename}</p>}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </article>
   );
