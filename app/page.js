@@ -102,11 +102,21 @@ function ProjectCard({ project, password, onStatusChange }) {
 
   useEffect(() => {
     if (!selectedAttachment) return;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
     function closeOnEscape(event) {
       if (event.key === "Escape") setSelectedAttachment(null);
     }
+
     window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+    };
   }, [selectedAttachment]);
 
   async function updateStatus(status) {
@@ -189,11 +199,13 @@ function ProjectCard({ project, password, onStatusChange }) {
           <button className="lightbox-backdrop" onClick={() => setSelectedAttachment(null)} aria-label="Close attachment" />
           <div className="lightbox-content">
             <button className="lightbox-close" onClick={() => setSelectedAttachment(null)} aria-label="Close attachment">×</button>
-            {selectedAttachment.type?.startsWith("image/") ? (
-              <img src={selectedAttachment.url} alt={selectedAttachment.filename || "Project attachment"} />
-            ) : (
-              <a href={selectedAttachment.url}>Open attachment</a>
-            )}
+            <div className="lightbox-media">
+              {selectedAttachment.type?.startsWith("image/") ? (
+                <img src={selectedAttachment.url} alt={selectedAttachment.filename || "Project attachment"} />
+              ) : (
+                <a href={selectedAttachment.url}>Open attachment</a>
+              )}
+            </div>
             {selectedAttachment.filename && <p>{selectedAttachment.filename}</p>}
           </div>
         </div>
