@@ -3,20 +3,51 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const STATUS_OPTIONS = ["Awaiting Files", "Ready for Editing", "Complete"];
+const STATUS_LABELS = {
+  "Awaiting Files": "Awaiting Files",
+  "Ready for Editing": "Editing",
+  "Complete": "Complete"
+};
+const PACKAGE_DETAILS = [
+  {
+    pattern: /first impressions?\s+package/i,
+    name: "First Impressions Package",
+    includes: "Photos + Drone Photos + Virtual Twilight Photo + Floor Plan"
+  },
+  {
+    pattern: /listing ac(?:c)?elerator\s+package/i,
+    name: "Listing Accelerator Package",
+    includes: "Photos + Drone Photos + Virtual Twilight Photo + Floor Plan + 3D Tour"
+  },
+  {
+    pattern: /sold yesterday\s+package/i,
+    name: "Sold Yesterday Package",
+    includes: "Photos + Drone Photos + Virtual Twilight Photo + Floor Plan + Video"
+  }
+];
 
 function safeText(value) {
   return typeof value === "string" && value.trim() ? value.trim() : "";
 }
 
-function cleanOrderItems(value) {
-  return safeText(value)
+function parseOrderItems(value) {
+  const cleaned = safeText(value)
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/li>/gi, "\n")
     .replace(/<[^>]*>/g, "")
     .replace(/&amp;/g, "&")
     .replace(/&nbsp;/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+    .replace(/\n{3,}/g, "\n\n");
+
+  const lines = cleaned
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^(first impressions?|listing ac(?:c)?elerator|sold yesterday)\s+package\s*[=:]/i.test(line));
+
+  const text = lines.join("\n").trim();
+  const packageInfo = PACKAGE_DETAILS.find((item) => item.pattern.test(text));
+  return { text, packageInfo };
 }
 
 function StatusPill({ value, onChange, saving }) {
@@ -31,24 +62,23 @@ function StatusPill({ value, onChange, saving }) {
         onChange={(event) => onChange(event.target.value)}
       >
         {STATUS_OPTIONS.map((option) => (
-          <option key={option}>{option}</option>
+          <option key={option} value={option}>{STATUS_LABELS[option]}</option>
         ))}
       </select>
     </label>
   );
 }
 
-function AttachmentGallery({ attachments = [] }) {
+function AttachmentGallery({ attachments = [], onSelect }) {
   if (!attachments.length) return null;
   return (
     <div className="attachments">
       {attachments.map((file) => (
-        <a
+        <button
           className="attachment"
           key={file.id || file.url}
-          href={file.url}
-          target="_blank"
-          rel="noreferrer"
+          type="button"
+          onClick={() => onSelect(file)}
           aria-label={`Open ${file.filename || "attachment"}`}
         >
           {file.type?.startsWith("image/") ? (
@@ -57,7 +87,7 @@ function AttachmentGallery({ attachments = [] }) {
           ) : (
             <span>Open attachment</span>
           )}
-        </a>
+        </button>
       ))}
     </div>
   );
@@ -66,8 +96,18 @@ function AttachmentGallery({ attachments = [] }) {
 function ProjectCard({ project, password, onStatusChange }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const orderItems = cleanOrderItems(project.orderItems);
+  const [selectedAttachment, setSelectedAttachment] = useState(null);
+  const orderItems = parseOrderItems(project.orderItems);
   const hasAlert = Boolean(project.customerNotes || project.skylineNotes);
+
+  useEffect(() => {
+    if (!selectedAttachment) return;
+    function closeOnEscape(event) {
+      if (event.key === "Escape") setSelectedAttachment(null);
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [selectedAttachment]);
 
   async function updateStatus(status) {
     setSaving(true);
@@ -91,8 +131,19 @@ function ProjectCard({ project, password, onStatusChange }) {
 
         <div className="summary">
           <div>
-            <span className="eyebrow">ORDER</span>
-            <p>{orderItems || "No order items listed"}</p>
+            <span className="eyebrow">ORDER ITEMS</span>
+            <div className="order-line">
+              <p>{orderItems.text || "No order items listed"}</p>
+              {orderItems.packageInfo && (
+                <span className="package-preview" tabIndex="0">
+                  <span className="package-info-icon" aria-hidden="true">i</span>
+                  <span className="package-tooltip" role="tooltip">
+                    <strong>{orderItems.packageInfo.name}</strong>
+                    <span>{orderItems.packageInfo.includes}</span>
+                  </span>
+                </span>
+              )}
+            </div>
           </div>
           {hasAlert && (
             <div className="alert">
@@ -106,7 +157,7 @@ function ProjectCard({ project, password, onStatusChange }) {
       <div className="card-actions">
         <StatusPill value={project.status} saving={saving} onChange={updateStatus} />
         {project.aryeoOrderLink && (
-          <a className="link-button" href={project.aryeoOrderLink} target="_blank" rel="noreferrer">
+          <a className="link-button aryeo-button" href={project.aryeoOrderLink} target="_blank" rel="noreferrer">
             Open Aryeo ↗
           </a>
         )}
@@ -129,7 +180,22 @@ function ProjectCard({ project, password, onStatusChange }) {
               <p>{project.skylineNotes || "No Skyline notes."}</p>
             </section>
           </div>
-          <AttachmentGallery attachments={project.attachments} />
+          <AttachmentGallery attachments={project.attachments} onSelect={setSelectedAttachment} />
+        </div>
+      )}
+
+      {selectedAttachment && (
+        <div className="lightbox" role="dialog" aria-modal="true" aria-label="Project attachment">
+          <button className="lightbox-backdrop" onClick={() => setSelectedAttachment(null)} aria-label="Close attachment" />
+          <div className="lightbox-content">
+            <button className="lightbox-close" onClick={() => setSelectedAttachment(null)} aria-label="Close attachment">×</button>
+            {selectedAttachment.type?.startsWith("image/") ? (
+              <img src={selectedAttachment.url} alt={selectedAttachment.filename || "Project attachment"} />
+            ) : (
+              <a href={selectedAttachment.url}>Open attachment</a>
+            )}
+            {selectedAttachment.filename && <p>{selectedAttachment.filename}</p>}
+          </div>
         </div>
       )}
     </article>
@@ -202,7 +268,7 @@ export default function Home() {
 
   const counts = useMemo(() => ({
     total: projects.length,
-    ready: projects.filter((item) => item.status === "Ready for Editing").length,
+    editing: projects.filter((item) => item.status === "Ready for Editing").length,
     complete: projects.filter((item) => item.status === "Complete").length
   }), [projects]);
 
@@ -263,7 +329,7 @@ export default function Home() {
           </div>
           <div className="metrics">
             <div><strong>{counts.total}</strong><span>Projects</span></div>
-            <div><strong>{counts.ready}</strong><span>Ready</span></div>
+            <div><strong>{counts.editing}</strong><span>Editing</span></div>
             <div><strong>{counts.complete}</strong><span>Complete</span></div>
           </div>
         </section>
