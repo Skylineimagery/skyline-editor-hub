@@ -40,7 +40,6 @@ function activeProjectDate() {
   const day = Number(get("day"));
   const hour = Number(get("hour"));
 
-  // At 6:00 PM Eastern, begin showing today's appointments.
   if (hour >= 18) {
     return [
       String(year).padStart(4, "0"),
@@ -49,7 +48,6 @@ function activeProjectDate() {
     ].join("-");
   }
 
-  // Before 6:00 PM Eastern, continue showing yesterday's appointments.
   const previousDate = new Date(
     Date.UTC(year, month - 1, day - 1)
   );
@@ -82,7 +80,29 @@ function normalizeDate(value) {
   }).format(parsed);
 }
 
-async function getAllRecords() {
+function getWeekRange(dateString) {
+  const date = new Date(`${dateString}T12:00:00Z`);
+  const dayOfWeek = date.getUTCDay();
+
+  // Sunday is 0, so move it back six days.
+  const daysSinceMonday =
+    dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+  const monday = new Date(date);
+  monday.setUTCDate(
+    monday.getUTCDate() - daysSinceMonday
+  );
+
+  const sunday = new Date(monday);
+  sunday.setUTCDate(sunday.getUTCDate() + 6);
+
+  return {
+    weekStart: monday.toISOString().slice(0, 10),
+    weekEnd: sunday.toISOString().slice(0, 10)
+  };
+}
+
+function airtableSettings() {
   const token = process.env.AIRTABLE_TOKEN;
   const base = process.env.AIRTABLE_BASE_ID;
   const table = process.env.AIRTABLE_TABLE_ID;
@@ -92,6 +112,13 @@ async function getAllRecords() {
       "Airtable environment variables are missing."
     );
   }
+
+  return { token, base, table };
+}
+
+async function getAllRecords() {
+  const { token, base, table } =
+    airtableSettings();
 
   const records = [];
   let offset = "";
@@ -127,6 +154,87 @@ async function getAllRecords() {
   } while (offset);
 
   return records;
+}
+
+async function updateRecord(recordId, fields) {
+  const { token, base, table } =
+    airtableSettings();
+
+  const response = await fetch(
+    `https://api.airtable.com/v0/${base}/${table}/${recordId}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ fields }),
+      cache: "no-store"
+    }
+  );
+
+  if (!response.ok) {
+    const details = await response.text();
+
+    throw new Error(
+      `Airtable update returned ${response.status}: ${details}`
+    );
+  }
+
+  return response.json();
+}
+
+function calculateHours(records, projectDate) {
+  const { weekStart, weekEnd } =
+    getWeekRange(projectDate);
+
+  /*
+    Only one hours value is counted per appointment date,
+    even if a date contains several projects.
+  */
+  const hoursByDate = new Map();
+
+  for (const record of records) {
+    if (record.fields.Canceled) continue;
+
+    const appointmentDate = normalizeDate(
+      record.fields["Appointment Date"]
+    );
+
+    if (
+      !appointmentDate ||
+      appointmentDate < weekStart ||
+      appointmentDate > weekEnd
+    ) {
+      continue;
+    }
+
+    const value = Number(
+      record.fields["Editor Hours"]
+    );
+
+    if (
+      Number.isFinite(value) &&
+      value >= 0 &&
+      !hoursByDate.has(appointmentDate)
+    ) {
+      hoursByDate.set(appointmentDate, value);
+    }
+  }
+
+  const dailyHours =
+    hoursByDate.get(projectDate) ?? null;
+
+  const weeklyHours = Array.from(
+    hoursByDate.values()
+  ).reduce((total, hours) => total + hours, 0);
+
+  return {
+    dailyHours,
+    weeklyHours,
+    weekStart,
+    weekEnd
+  };
 }
 
 export async function GET(request) {
@@ -176,10 +284,125 @@ export async function GET(request) {
         )
       );
 
+    const hours = calculateHours(
+      records,
+      projectDate
+    );
+
     return NextResponse.json(
       {
         projects,
-        date: projectDate
+        date: projectDate,
+        ...hours
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store"
+        }
+      }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request) {
+  if (!authorized(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const hours = Number(body.hours);
+
+    if (
+      !Number.isFinite(hours) ||
+      hours < 0 ||
+      hours > 24
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Hours must be a number between 0 and 24."
+        },
+        { status: 400 }
+      );
+    }
+
+    const projectDate = activeProjectDate();
+    const records = await getAllRecords();
+
+    const todaysRecords = records.filter(
+      (record) =>
+        normalizeDate(
+          record.fields["Appointment Date"]
+        ) === projectDate &&
+        !record.fields.Canceled
+    );
+
+    if (todaysRecords.length === 0) {
+      return NextResponse.json(
+        {
+          error:
+            "There are no active projects available for this date."
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+      Continue using the record that already contains
+      today's hours. Otherwise, use the first project.
+    */
+    const hoursRecord =
+      todaysRecords.find(
+        (record) =>
+          record.fields["Editor Hours"] !==
+            undefined &&
+          record.fields["Editor Hours"] !== null
+      ) || todaysRecords[0];
+
+    await updateRecord(hoursRecord.id, {
+      "Editor Hours": hours
+    });
+
+    /*
+      Clear accidental duplicate hour entries from any
+      other projects on the same date.
+    */
+    const duplicateRecords = todaysRecords.filter(
+      (record) =>
+        record.id !== hoursRecord.id &&
+        record.fields["Editor Hours"] !==
+          undefined &&
+        record.fields["Editor Hours"] !== null
+    );
+
+    await Promise.all(
+      duplicateRecords.map((record) =>
+        updateRecord(record.id, {
+          "Editor Hours": null
+        })
+      )
+    );
+
+    const refreshedRecords = await getAllRecords();
+    const totals = calculateHours(
+      refreshedRecords,
+      projectDate
+    );
+
+    return NextResponse.json(
+      {
+        success: true,
+        date: projectDate,
+        ...totals
       },
       {
         headers: {
