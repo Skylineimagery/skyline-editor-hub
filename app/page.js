@@ -29,8 +29,7 @@ const PACKAGE_DETAILS = [
       "Photos + Drone Photos + Virtual Twilight Photo + Floor Plan"
   },
   {
-    pattern:
-      /listing ac(?:c)?elerator\s+package/i,
+    pattern: /listing ac(?:c)?elerator\s+package/i,
     name: "Listing Accelerator Package",
     includes:
       "Photos + Drone Photos + Virtual Twilight Photo + Floor Plan + 3D Tour"
@@ -99,7 +98,10 @@ function formatHours(value) {
 
   return Number.isInteger(number)
     ? String(number)
-    : number.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+    : number
+        .toFixed(2)
+        .replace(/0+$/, "")
+        .replace(/\.$/, "");
 }
 
 function StatusPill({
@@ -281,7 +283,7 @@ function ProjectCard({
             }`}
             aria-hidden="true"
           >
-            âŒ„
+            {"\u2304"}
           </span>
         </div>
 
@@ -355,7 +357,7 @@ function ProjectCard({
             target="_blank"
             rel="noreferrer"
           >
-            Open Aryeo â†—
+            Open Aryeo {"\u2197"}
           </a>
         )}
 
@@ -366,7 +368,7 @@ function ProjectCard({
             target="_blank"
             rel="noreferrer"
           >
-            Open Fotello â†—
+            Open Fotello {"\u2197"}
           </a>
         )}
       </div>
@@ -438,7 +440,7 @@ function ProjectCard({
                 }
                 aria-label="Close attachment"
               >
-                Ã—
+                {"\u00D7"}
               </button>
 
               <div className="lightbox-media">
@@ -802,7 +804,7 @@ export default function Home() {
 
           <p className="login-copy">
             Enter the private editor
-            password to view todayâ€™s
+            password to view today's
             projects.
           </p>
 
@@ -823,7 +825,7 @@ export default function Home() {
           </label>
 
           <button type="submit">
-            Open Todayâ€™s Projects
+            Open Today's Projects
           </button>
 
           {error && (
@@ -863,7 +865,7 @@ export default function Home() {
             disabled={loading}
           >
             {loading
-              ? "Refreshingâ€¦"
+              ? "Refreshing..."
               : "Refresh"}
           </button>
         </div>
@@ -873,10 +875,10 @@ export default function Home() {
         <section className="hero">
           <div>
             <p className="kicker">
-              TODAYâ€™S WORKFLOW
+              TODAY'S WORKFLOW
             </p>
 
-            <h1>Todayâ€™s Projects</h1>
+            <h1>Today's Projects</h1>
 
             <p className="date">
               {formatProjectDate(projectDate)}
@@ -899,8 +901,14 @@ export default function Home() {
               <span>Complete</span>
             </div>
 
-            <form className="metric-hours" onSubmit={saveHours}>
-              <label htmlFor="daily-hours">Hours</label>
+            <form
+              className="metric-hours"
+              onSubmit={saveHours}
+            >
+              <label htmlFor="daily-hours">
+                Hours
+              </label>
+
               <input
                 id="daily-hours"
                 type="number"
@@ -910,13 +918,21 @@ export default function Home() {
                 inputMode="decimal"
                 placeholder="0"
                 value={hoursDraft}
-                disabled={savingHours || !projects.length}
+                disabled={
+                  savingHours ||
+                  !projects.length
+                }
                 onChange={(event) => {
                   hoursDirty.current = true;
-                  setHoursDraft(event.target.value);
+
+                  setHoursDraft(
+                    event.target.value
+                  );
+
                   setHoursMessage("");
                 }}
               />
+
               <button
                 type="submit"
                 disabled={
@@ -925,19 +941,28 @@ export default function Home() {
                   hoursDraft.trim() === ""
                 }
               >
-                {savingHours ? "â€¦" : "Save"}
+                {savingHours ? "..." : "Save"}
               </button>
             </form>
 
             <div className="metric-item metric-week">
-              <strong>{formatHours(weeklyHours)}</strong>
+              <strong>
+                {formatHours(weeklyHours)}
+              </strong>
+
               <span>Hours This Week</span>
             </div>
           </div>
         </section>
 
         {hoursMessage && (
-          <p className={hoursMessage === "Hours saved" ? "compact-hours-message success" : "compact-hours-message"}>
+          <p
+            className={
+              hoursMessage === "Hours saved"
+                ? "compact-hours-message success"
+                : "compact-hours-message"
+            }
+          >
             {hoursMessage}
           </p>
         )}
@@ -955,8 +980,9 @@ export default function Home() {
           {loading && !projects.length ? (
             <div className="empty">
               <div className="spinner" />
+
               <h2>
-                Loading todayâ€™s projectsâ€¦
+                Loading today's projects...
               </h2>
             </div>
           ) : projects.length ? (
@@ -973,7 +999,7 @@ export default function Home() {
           ) : (
             <div className="empty">
               <div className="empty-check">
-                âœ“
+                {"\u2713"}
               </div>
 
               <h2>
@@ -1016,7 +1042,10 @@ export default function Home() {
 
         .metrics.metrics-with-hours {
           display: grid;
-          grid-template-columns: repeat(3, minmax(88px, 1fr)) minmax(210px, 1.8fr) minmax(125px, 1.15fr);
+          grid-template-columns:
+            repeat(3, minmax(88px, 1fr))
+            minmax(210px, 1.8fr)
+            minmax(125px, 1.15fr);
           align-items: stretch;
           width: min(100%, 820px);
           padding: 0;
@@ -1043,7 +1072,11 @@ export default function Home() {
         }
 
         .metrics-with-hours .metric-item strong {
-          font-size: clamp(1.35rem, 2vw, 1.8rem);
+          font-size: clamp(
+            1.35rem,
+            2vw,
+            1.8rem
+          );
           line-height: 1;
         }
 
@@ -1060,7 +1093,10 @@ export default function Home() {
 
         .metric-hours {
           display: grid;
-          grid-template-columns: auto minmax(58px, 78px) auto;
+          grid-template-columns:
+            auto
+            minmax(58px, 78px)
+            auto;
           align-content: center;
           align-items: center;
           justify-content: center;
@@ -1132,7 +1168,8 @@ export default function Home() {
 
         @media (max-width: 720px) {
           .metrics.metrics-with-hours {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns:
+              repeat(3, 1fr);
           }
 
           .metric-hours {
@@ -1149,7 +1186,8 @@ export default function Home() {
 
         @media (max-width: 480px) {
           .metric-hours {
-            grid-template-columns: 1fr 58px auto;
+            grid-template-columns:
+              1fr 58px auto;
             padding-inline: 8px;
           }
 
