@@ -281,7 +281,7 @@ function ProjectCard({
             }`}
             aria-hidden="true"
           >
-            ⌄
+            âŒ„
           </span>
         </div>
 
@@ -355,7 +355,7 @@ function ProjectCard({
             target="_blank"
             rel="noreferrer"
           >
-            Open Aryeo ↗
+            Open Aryeo â†—
           </a>
         )}
 
@@ -366,7 +366,7 @@ function ProjectCard({
             target="_blank"
             rel="noreferrer"
           >
-            Open Fotello ↗
+            Open Fotello â†—
           </a>
         )}
       </div>
@@ -438,7 +438,7 @@ function ProjectCard({
                 }
                 aria-label="Close attachment"
               >
-                ×
+                Ã—
               </button>
 
               <div className="lightbox-media">
@@ -802,7 +802,7 @@ export default function Home() {
 
           <p className="login-copy">
             Enter the private editor
-            password to view today’s
+            password to view todayâ€™s
             projects.
           </p>
 
@@ -823,7 +823,7 @@ export default function Home() {
           </label>
 
           <button type="submit">
-            Open Today’s Projects
+            Open Todayâ€™s Projects
           </button>
 
           {error && (
@@ -863,7 +863,7 @@ export default function Home() {
             disabled={loading}
           >
             {loading
-              ? "Refreshing…"
+              ? "Refreshingâ€¦"
               : "Refresh"}
           </button>
         </div>
@@ -873,124 +873,74 @@ export default function Home() {
         <section className="hero">
           <div>
             <p className="kicker">
-              TODAY’S WORKFLOW
+              TODAYâ€™S WORKFLOW
             </p>
 
-            <h1>Today’s Projects</h1>
+            <h1>Todayâ€™s Projects</h1>
 
             <p className="date">
               {formatProjectDate(projectDate)}
             </p>
           </div>
 
-          <div className="metrics">
-            <div>
+          <div className="metrics metrics-with-hours">
+            <div className="metric-item">
               <strong>{counts.total}</strong>
               <span>Projects</span>
             </div>
 
-            <div>
-              <strong>
-                {counts.editing}
-              </strong>
+            <div className="metric-item">
+              <strong>{counts.editing}</strong>
               <span>Editing</span>
             </div>
 
-            <div>
-              <strong>
-                {counts.complete}
-              </strong>
+            <div className="metric-item">
+              <strong>{counts.complete}</strong>
               <span>Complete</span>
+            </div>
+
+            <form className="metric-hours" onSubmit={saveHours}>
+              <label htmlFor="daily-hours">Hours</label>
+              <input
+                id="daily-hours"
+                type="number"
+                min="0"
+                max="24"
+                step="0.25"
+                inputMode="decimal"
+                placeholder="0"
+                value={hoursDraft}
+                disabled={savingHours || !projects.length}
+                onChange={(event) => {
+                  hoursDirty.current = true;
+                  setHoursDraft(event.target.value);
+                  setHoursMessage("");
+                }}
+              />
+              <button
+                type="submit"
+                disabled={
+                  savingHours ||
+                  !projects.length ||
+                  hoursDraft.trim() === ""
+                }
+              >
+                {savingHours ? "â€¦" : "Save"}
+              </button>
+            </form>
+
+            <div className="metric-item metric-week">
+              <strong>{formatHours(weeklyHours)}</strong>
+              <span>Hours This Week</span>
             </div>
           </div>
         </section>
 
-        <section className="hours-panel">
-          <div className="hours-copy">
-            <p className="kicker">
-              EDITOR HOURS
-            </p>
-
-            <h2>Hours worked</h2>
-
-            <p>
-              Enter the total hours worked
-              for this project day.
-            </p>
-          </div>
-
-          <form
-            className="hours-form"
-            onSubmit={saveHours}
-          >
-            <label>
-              <span>Today</span>
-
-              <div className="hours-input-wrap">
-                <input
-                  type="number"
-                  min="0"
-                  max="24"
-                  step="0.25"
-                  inputMode="decimal"
-                  placeholder="0"
-                  value={hoursDraft}
-                  disabled={
-                    savingHours ||
-                    !projects.length
-                  }
-                  onChange={(event) => {
-                    hoursDirty.current = true;
-                    setHoursDraft(
-                      event.target.value
-                    );
-                    setHoursMessage("");
-                  }}
-                />
-
-                <span>hours</span>
-              </div>
-            </label>
-
-            <button
-              type="submit"
-              disabled={
-                savingHours ||
-                !projects.length ||
-                hoursDraft.trim() === ""
-              }
-            >
-              {savingHours
-                ? "Saving…"
-                : dailyHours === null
-                  ? "Save Hours"
-                  : "Update Hours"}
-            </button>
-
-            {hoursMessage && (
-              <p
-                className={
-                  hoursMessage ===
-                  "Hours saved"
-                    ? "hours-message success"
-                    : "hours-message"
-                }
-              >
-                {hoursMessage}
-              </p>
-            )}
-          </form>
-
-          <div className="weekly-total">
-            <span>This Week</span>
-            <strong>
-              {formatHours(weeklyHours)}
-            </strong>
-            <small>
-              Monday–Sunday hours
-            </small>
-          </div>
-        </section>
+        {hoursMessage && (
+          <p className={hoursMessage === "Hours saved" ? "compact-hours-message success" : "compact-hours-message"}>
+            {hoursMessage}
+          </p>
+        )}
 
         {error && (
           <div className="error-banner">
@@ -1006,7 +956,7 @@ export default function Home() {
             <div className="empty">
               <div className="spinner" />
               <h2>
-                Loading today’s projects…
+                Loading todayâ€™s projectsâ€¦
               </h2>
             </div>
           ) : projects.length ? (
@@ -1023,7 +973,7 @@ export default function Home() {
           ) : (
             <div className="empty">
               <div className="empty-check">
-                ✓
+                âœ“
               </div>
 
               <h2>
@@ -1057,6 +1007,157 @@ export default function Home() {
           </button>
         </footer>
       </div>
+
+      <style jsx global>{`
+        .hero {
+          align-items: center;
+          gap: 28px;
+        }
+
+        .metrics.metrics-with-hours {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(88px, 1fr)) minmax(210px, 1.8fr) minmax(125px, 1.15fr);
+          align-items: stretch;
+          width: min(100%, 820px);
+          padding: 0;
+          overflow: hidden;
+        }
+
+        .metrics-with-hours > * {
+          min-width: 0;
+          min-height: 84px;
+          border-left: 1px solid #dce8ed;
+        }
+
+        .metrics-with-hours > *:first-child {
+          border-left: 0;
+        }
+
+        .metrics-with-hours .metric-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 12px 10px;
+          text-align: center;
+        }
+
+        .metrics-with-hours .metric-item strong {
+          font-size: clamp(1.35rem, 2vw, 1.8rem);
+          line-height: 1;
+        }
+
+        .metrics-with-hours .metric-item span,
+        .metric-hours label {
+          margin-top: 7px;
+          color: #607587;
+          font-size: 0.68rem;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          line-height: 1.15;
+          text-transform: uppercase;
+        }
+
+        .metric-hours {
+          display: grid;
+          grid-template-columns: auto minmax(58px, 78px) auto;
+          align-content: center;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          padding: 12px;
+        }
+
+        .metric-hours label {
+          margin: 0;
+          white-space: nowrap;
+        }
+
+        .metric-hours input {
+          width: 100%;
+          height: 38px;
+          margin: 0;
+          padding: 0 9px;
+          border: 1px solid #cbdde4;
+          border-radius: 10px;
+          background: #f5fafc;
+          color: #06243a;
+          font: inherit;
+          font-weight: 800;
+          text-align: center;
+        }
+
+        .metric-hours button {
+          height: 38px;
+          margin: 0;
+          padding: 0 12px;
+          border: 0;
+          border-radius: 10px;
+          background: #169db0;
+          color: white;
+          font: inherit;
+          font-size: 0.78rem;
+          font-weight: 800;
+          cursor: pointer;
+        }
+
+        .metric-hours button:disabled,
+        .metric-hours input:disabled {
+          cursor: not-allowed;
+          opacity: 0.55;
+        }
+
+        .compact-hours-message {
+          width: fit-content;
+          margin: -12px 0 16px auto;
+          color: #a13f35;
+          font-size: 0.78rem;
+          font-weight: 700;
+        }
+
+        .compact-hours-message.success {
+          color: #148563;
+        }
+
+        @media (max-width: 1050px) {
+          .hero {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .metrics.metrics-with-hours {
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 720px) {
+          .metrics.metrics-with-hours {
+            grid-template-columns: repeat(3, 1fr);
+          }
+
+          .metric-hours {
+            grid-column: 1 / 3;
+            border-top: 1px solid #dce8ed;
+            border-left: 0;
+          }
+
+          .metrics-with-hours .metric-week {
+            grid-column: 3;
+            border-top: 1px solid #dce8ed;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .metric-hours {
+            grid-template-columns: 1fr 58px auto;
+            padding-inline: 8px;
+          }
+
+          .metric-hours label {
+            font-size: 0.62rem;
+          }
+        }
+      `}</style>
     </main>
   );
 }
