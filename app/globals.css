@@ -442,3 +442,85 @@ footer button { color: var(--muted); border: 0; background: transparent; text-de
     right: 8px;
   }
 }
+/* HOURS + PROJECT COUNTERS ON ONE LINE */
+
+.hero-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+.hero-controls .hours-inline {
+  order: 1;
+}
+
+.hero-controls .metrics {
+  order: 2;
+}
+
+.hours-inline {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  margin: 0;
+}
+
+.hours-message {
+  position: absolute;
+  margin-top: 65px;
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* STACK CLEANLY ON SMALLER SCREENS */
+
+@media (max-width: 980px) {
+  .hero {
+    align-items: flex-start;
+  }
+
+  .hero-controls {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .hero-controls .metrics {
+    order: 1;
+  }
+
+  .hero-controls .hours-inline {
+    order: 2;
+  }
+
+  .hours-message {
+    position: static;
+    margin-top: -5px;
+  }
+}
+
+/* MOBILE */
+
+@media (max-width: 720px) {
+  .hero-controls {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .metrics {
+    width: 100%;
+  }
+
+  .hours-inline {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .weekly-hours {
+    margin-left: auto;
+  }
+}
