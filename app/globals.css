@@ -272,3 +272,173 @@ footer button { color: var(--muted); border: 0; background: transparent; text-de
   .lightbox-previous { left: 8px; }
   .lightbox-next { right: 8px; }
 }
+/* =========================================================
+   HOURS CONTROL — COMPACT SINGLE ROW
+   ========================================================= */
+
+.hero-controls {
+  display: grid;
+  justify-items: end;
+  gap: 9px;
+}
+
+.hours-inline {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  margin: 0;
+}
+
+.hours-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.hours-input-group span {
+  white-space: nowrap;
+}
+
+.hours-input-group input {
+  width: 76px;
+  height: 36px;
+  padding: 0 10px;
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid #c9d7de;
+  border-radius: 9px;
+  outline: none;
+}
+
+.hours-input-group input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(16, 150, 168, 0.12);
+}
+
+.save-hours {
+  height: 36px;
+  padding: 0 14px;
+  color: white;
+  background: var(--blue);
+  border: 0;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.save-hours:hover {
+  background: #087f90;
+}
+
+.save-hours:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.weekly-hours {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.weekly-hours strong {
+  color: var(--navy);
+  font-size: 19px;
+  line-height: 1;
+}
+
+.weekly-hours span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hours-message {
+  min-height: 14px;
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+
+/* =========================================================
+   LIGHTBOX ARROWS — TRUE LEFT AND RIGHT SIDES
+   ========================================================= */
+
+.lightbox-arrow-left,
+.lightbox-arrow-right {
+  position: fixed;
+  top: 50%;
+  z-index: 10003;
+  transform: translateY(-50%);
+}
+
+.lightbox-arrow-left {
+  left: 24px;
+}
+
+.lightbox-arrow-right {
+  right: 24px;
+}
+
+.lightbox-arrow-left:hover,
+.lightbox-arrow-left:focus-visible,
+.lightbox-arrow-right:hover,
+.lightbox-arrow-right:focus-visible {
+  transform: translateY(-50%) scale(1.06);
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 720px) {
+  .hero-controls {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .hours-inline {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 7px;
+  }
+
+  .hours-input-group {
+    gap: 6px;
+  }
+
+  .hours-input-group input {
+    width: 64px;
+  }
+
+  .weekly-hours {
+    margin-left: auto;
+    padding-left: 8px;
+  }
+
+  .weekly-hours strong {
+    font-size: 17px;
+  }
+
+  .weekly-hours span {
+    font-size: 11px;
+  }
+
+  .lightbox-arrow-left {
+    left: 8px;
+  }
+
+  .lightbox-arrow-right {
+    right: 8px;
+  }
+}
