@@ -1,274 +1,1111 @@
-:root {
-  --navy: #071b2b;
-  --navy-2: #0d2c40;
-  --blue: #1096a8;
-  --blue-soft: #e7f7f8;
-  --ink: #102333;
-  --muted: #657786;
-  --line: #dce6eb;
-  --paper: #f5f8fa;
-  --white: #fff;
-  --amber: #f59e0b;
-  --green: #18a66a;
-  --aryeo: #5848e8;
-  --shadow: 0 14px 40px rgba(8, 35, 52, .09);
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+
+const STATUS_OPTIONS = [
+  "Awaiting Files",
+  "Ready for Editing",
+  "Complete"
+];
+
+const STATUS_LABELS = {
+  "Awaiting Files": "Awaiting Files",
+  "Ready for Editing": "Editing",
+  Complete: "Complete"
+};
+
+const PACKAGE_DETAILS = [
+  {
+    pattern: /first impressions?\s+package/i,
+    name: "First Impressions Package",
+    includes:
+      "Photos + Drone Photos + Virtual Twilight Photo + Floor Plan"
+  },
+  {
+    pattern: /listing ac(?:c)?elerator\s+package/i,
+    name: "Listing Accelerator Package",
+    includes:
+      "Photos + Drone Photos + Virtual Twilight Photo + Floor Plan + 3D Tour"
+  },
+  {
+    pattern: /sold yesterday\s+package/i,
+    name: "Sold Yesterday Package",
+    includes:
+      "Photos + Drone Photos + Virtual Twilight Photo + Floor Plan + Video"
+  }
+];
+
+function safeText(value) {
+  return typeof value === "string" && value.trim()
+    ? value.trim()
+    : "";
 }
 
-* { box-sizing: border-box; }
-html { background: var(--paper); }
-body {
-  margin: 0;
-  color: var(--ink);
-  background:
-    radial-gradient(circle at 8% 0%, rgba(16,150,168,.1), transparent 28rem),
-    var(--paper);
-  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-button, input, select { font: inherit; }
-button, a, select { -webkit-tap-highlight-color: transparent; }
+function parseOrderItems(value) {
+  const cleaned = safeText(value)
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\n{3,}/g, "\n\n");
 
-.topbar {
-  height: 76px;
-  padding: 0 clamp(20px, 4vw, 64px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--white);
-  background: var(--navy);
-  border-bottom: 3px solid var(--blue);
-}
-.brand, .top-actions { display: flex; align-items: center; gap: 12px; }
-.brand > div:last-child { display: grid; line-height: 1.05; }
-.brand strong { font-size: 19px; letter-spacing: .01em; }
-.brand span { color: #9eb9c6; font-size: 12px; text-transform: uppercase; letter-spacing: .14em; margin-top: 5px; }
-.brand-mark {
-  width: 56px; height: 56px; border-radius: 17px;
-  display: grid; place-items: center;
-  color: white; font-size: 28px; font-weight: 900;
-  background: linear-gradient(145deg, #13aabd, #087687);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.28);
-}
-.brand-mark.small { width: 42px; height: 42px; border-radius: 12px; font-size: 21px; }
-.live {
-  display: flex; align-items: center; gap: 7px;
-  color: #bcd1da; text-transform: uppercase; letter-spacing: .12em;
-  font-size: 11px; font-weight: 800;
-}
-.live i { width: 8px; height: 8px; border-radius: 50%; background: #2ee58d; box-shadow: 0 0 0 5px rgba(46,229,141,.12); }
-.refresh {
-  border: 1px solid rgba(255,255,255,.18); border-radius: 10px;
-  background: rgba(255,255,255,.06); color: white; padding: 9px 13px; cursor: pointer;
-}
-.refresh:disabled { opacity: .6; }
+  const lines = cleaned
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter(
+      (line) =>
+        !/^(first impressions?|listing ac(?:c)?elerator|sold yesterday)\s+package\s*[=:]/i.test(
+          line
+        )
+    );
 
-.dashboard { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 52px 0 32px; }
-.hero { display: flex; justify-content: space-between; align-items: flex-end; gap: 30px; margin-bottom: 34px; }
-.kicker { margin: 0 0 8px; color: var(--blue); font-size: 11px; font-weight: 900; letter-spacing: .17em; }
-.hero h1 { margin: 0; color: var(--navy); font-size: clamp(38px, 5vw, 64px); letter-spacing: -.05em; line-height: .98; }
-.date { margin: 12px 0 0; color: var(--muted); font-size: 16px; }
-.metrics {
-  display: flex; padding: 8px 0;
-  background: rgba(255,255,255,.72); border: 1px solid var(--line); border-radius: 16px;
-}
-.metrics div { min-width: 100px; padding: 6px 22px; display: grid; text-align: center; border-left: 1px solid var(--line); }
-.metrics div:first-child { border-left: 0; }
-.metrics strong { color: var(--navy); font-size: 25px; }
-.metrics span { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+  const text = lines.join("\n").trim();
 
-.project-list { display: grid; gap: 15px; }
-.project-card {
-  overflow: hidden; background: var(--white); border: 1px solid var(--line); border-radius: 18px;
-  box-shadow: var(--shadow); transition: box-shadow .2s ease;
-}
-.project-card.has-alert { border-left: 4px solid var(--amber); }
-.project-card:hover { box-shadow: 0 18px 48px rgba(8,35,52,.12); }
-.card-main { width: 100%; padding: 19px 24px 11px; color: inherit; text-align: left; border: 0; background: transparent; cursor: pointer; }
-.card-heading { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
-.customer { color: var(--blue); font-size: 12px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
-.card-heading h2 { margin: 4px 0 0; color: var(--navy); font-size: clamp(21px, 3vw, 29px); line-height: 1.15; letter-spacing: -.025em; }
-.chevron { width: 34px; height: 34px; display: grid; place-items: center; color: var(--muted); font-size: 28px; transform: rotate(0deg); transition: transform .2s; }
-.chevron.open { transform: rotate(180deg); }
-.summary { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-top: 15px; }
-.eyebrow { color: var(--muted); font-size: 10px; font-weight: 900; letter-spacing: .14em; }
-.summary p { white-space: pre-line; margin: 5px 0 0; line-height: 1.5; font-size: 15px; }
-.order-line { display: flex; align-items: center; gap: 9px; }
-.package-preview { position: relative; display: inline-grid; place-items: center; outline: none; }
-.package-info-icon {
-  width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%;
-  color: #087687; background: var(--blue-soft); border: 1px solid #b9e2e7;
-  font-size: 12px; font-weight: 900; cursor: help;
-}
-.package-tooltip {
-  position: absolute; z-index: 20; left: 50%; bottom: calc(100% + 11px);
-  width: min(330px, 75vw); padding: 13px 14px; border-radius: 11px;
-  color: white; background: var(--navy); box-shadow: 0 14px 35px rgba(5,25,39,.24);
-  opacity: 0; visibility: hidden; transform: translate(-50%, 5px);
-  transition: opacity .16s ease, transform .16s ease, visibility .16s;
-  pointer-events: none;
-}
-.package-tooltip::after {
-  content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-  border: 7px solid transparent; border-top-color: var(--navy);
-}
-.package-tooltip strong, .package-tooltip span { display: block; }
-.package-tooltip strong { margin-bottom: 5px; font-size: 12px; }
-.package-tooltip span { color: #c7dbe4; font-size: 12px; line-height: 1.45; }
-.package-preview:hover .package-tooltip,
-.package-preview:focus .package-tooltip,
-.package-preview:focus-within .package-tooltip { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
-.alert {
-  flex: none; display: flex; align-items: center; gap: 7px; color: #9a5d00; background: #fff5db;
-  border-radius: 999px; padding: 7px 11px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
-}
-.alert span { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; color: white; background: var(--amber); }
-.card-actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; padding: 0 24px 16px; }
-.status {
-  display: flex; align-items: center; gap: 8px; border-radius: 10px; padding: 0 10px;
-  background: #edf2f5; border: 1px solid #d9e4e9;
-}
-.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #81939e; }
-.status select { min-height: 38px; color: var(--ink); font-weight: 750; border: 0; outline: 0; background: transparent; cursor: pointer; }
-.status-ready-for-editing { background: #e6f7ff; border-color: #bbe9fa; }
-.status-ready-for-editing .status-dot { background: #0b94d1; }
-.status-complete { background: #e6f8ef; border-color: #bde9d2; }
-.status-complete .status-dot { background: var(--green); }
-.link-button {
-  min-height: 40px; display: inline-flex; align-items: center; padding: 0 13px;
-  color: var(--navy); background: white; border: 1px solid var(--line); border-radius: 10px;
-  text-decoration: none; font-size: 13px; font-weight: 750;
-}
-.link-button:hover { color: var(--blue); border-color: #a9dce2; }
-.aryeo-button { color: var(--aryeo); border-color: rgba(88,72,232,.3); background: #f7f5ff; }
-.aryeo-button:hover { color: #4534dc; border-color: var(--aryeo); background: #f0edff; }
-.details { border-top: 1px solid var(--line); background: #f9fbfc; padding: 22px 26px 26px; }
-.note-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.note { min-height: 132px; padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: white; }
-.note.important { border-color: #f4cd7e; box-shadow: inset 4px 0 0 var(--amber); }
-.note h3 { margin: 0 0 10px; color: var(--navy); font-size: 12px; text-transform: uppercase; letter-spacing: .09em; }
-.note p { margin: 0; color: #344b5b; white-space: pre-wrap; line-height: 1.55; font-size: 14px; }
-.attachments { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 14px; }
-.attachment { overflow: hidden; min-height: 110px; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: #e9f0f3; cursor: zoom-in; }
-.attachment img { width: 100%; height: 140px; display: block; object-fit: cover; transition: transform .2s; }
-.attachment:hover img { transform: scale(1.025); }
-.lightbox {
-  position: fixed; z-index: 1000; inset: 0; width: 100%; height: 100%;
-  overflow: hidden; contain: layout paint; isolation: isolate;
-}
-.lightbox-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: rgba(3,15,24,.88); cursor: zoom-out; }
-.lightbox-content {
-  position: absolute; z-index: 1; inset: clamp(18px, 3vw, 38px);
-  display: grid; grid-template-rows: minmax(0, 1fr) auto;
-  justify-items: center; min-width: 0; min-height: 0;
-}
-.lightbox-media {
-  width: 100%; height: 100%; min-width: 0; min-height: 0;
-  display: flex; align-items: center; justify-content: center;
-}
-.lightbox-content img {
-  display: block; width: 100%; height: 100%; min-width: 0; min-height: 0;
-  object-fit: contain; border-radius: 10px; box-shadow: 0 24px 80px rgba(0,0,0,.45);
-}
-.lightbox-content p { margin: 10px 0 0; color: #dce8ed; font-size: 13px; line-height: 1.25; }
-.lightbox-close {
-  position: absolute; z-index: 2; top: -10px; right: -10px; width: 42px; height: 42px;
-  display: grid; place-items: center; border: 1px solid rgba(255,255,255,.25); border-radius: 50%;
-  color: white; background: #0b2738; font-size: 28px; line-height: 1; cursor: pointer;
+  const packageInfo = PACKAGE_DETAILS.find((item) =>
+    item.pattern.test(text)
+  );
+
+  return {
+    text,
+    packageInfo
+  };
 }
 
-.lightbox-arrow {
-  position: fixed;
-  top: 50%;
-  z-index: 10003;
-  display: grid;
-  width: 58px;
-  height: 58px;
-  place-items: center;
-  padding: 0 0 5px;
-  border: 1px solid rgba(255,255,255,.3);
-  border-radius: 50%;
-  background: rgba(7,27,43,.9);
-  color: #fff;
-  box-shadow: 0 10px 30px rgba(0,0,0,.3);
-  font: 400 48px/1 Arial, sans-serif;
-  cursor: pointer;
-  transform: translateY(-50%);
-  transition: background .15s ease, transform .15s ease;
+function StatusPill({ value, onChange, saving }) {
+  const status = STATUS_OPTIONS.includes(value)
+    ? value
+    : "Awaiting Files";
+
+  return (
+    <label
+      className={`status status-${status
+        .toLowerCase()
+        .replaceAll(" ", "-")}`}
+    >
+      <span className="status-dot" />
+
+      <select
+        aria-label="Project status"
+        value={status}
+        disabled={saving}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {STATUS_OPTIONS.map((option) => (
+          <option key={option} value={option}>
+            {STATUS_LABELS[option]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
-.lightbox-arrow:hover,
-.lightbox-arrow:focus-visible {
-  background: var(--blue);
-  transform: translateY(-50%) scale(1.06);
-  outline: none;
+function AttachmentGallery({ attachments = [], onSelect }) {
+  if (!attachments.length) {
+    return null;
+  }
+
+  return (
+    <div className="attachments">
+      {attachments.map((file, index) => (
+        <button
+          className="attachment"
+          key={file.id || file.url}
+          type="button"
+          onClick={() => onSelect(index)}
+          aria-label={`Open ${
+            file.filename || `attachment ${index + 1}`
+          }`}
+        >
+          {file.type?.startsWith("image/") ? (
+            <img
+              src={file.thumbnails?.large?.url || file.url}
+              alt={
+                file.filename ||
+                `Project attachment ${index + 1}`
+              }
+            />
+          ) : (
+            <span>Open attachment</span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
 }
 
-.lightbox-previous { left: 24px; }
-.lightbox-next { right: 24px; }
+function ProjectCard({
+  project,
+  password,
+  onStatusChange
+}) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [
+    selectedAttachmentIndex,
+    setSelectedAttachmentIndex
+  ] = useState(null);
 
-.lightbox-caption {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  min-height: 28px;
-  color: #dce8ed;
+  const attachments = Array.isArray(project.attachments)
+    ? project.attachments
+    : [];
+
+  const selectedAttachment =
+    selectedAttachmentIndex !== null
+      ? attachments[selectedAttachmentIndex]
+      : null;
+
+  const orderItems = parseOrderItems(
+    project.orderItems
+  );
+
+  const hasAlert = Boolean(
+    project.customerNotes || project.skylineNotes
+  );
+
+  const closeAttachment = useCallback(() => {
+    setSelectedAttachmentIndex(null);
+  }, []);
+
+  const showPreviousAttachment = useCallback(() => {
+    if (!attachments.length) {
+      return;
+    }
+
+    setSelectedAttachmentIndex((current) => {
+      if (current === null) {
+        return 0;
+      }
+
+      return (
+        current -
+        1 +
+        attachments.length
+      ) % attachments.length;
+    });
+  }, [attachments.length]);
+
+  const showNextAttachment = useCallback(() => {
+    if (!attachments.length) {
+      return;
+    }
+
+    setSelectedAttachmentIndex((current) => {
+      if (current === null) {
+        return 0;
+      }
+
+      return (current + 1) % attachments.length;
+    });
+  }, [attachments.length]);
+
+  useEffect(() => {
+    if (selectedAttachmentIndex === null) {
+      return;
+    }
+
+    const previousHtmlOverflow =
+      document.documentElement.style.overflow;
+
+    const previousBodyOverflow =
+      document.body.style.overflow;
+
+    document.documentElement.style.overflow =
+      "hidden";
+
+    document.body.style.overflow = "hidden";
+
+    function handleLightboxKeydown(event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeAttachment();
+        return;
+      }
+
+      if (
+        event.key === "ArrowLeft" &&
+        attachments.length > 1
+      ) {
+        event.preventDefault();
+        showPreviousAttachment();
+        return;
+      }
+
+      if (
+        event.key === "ArrowRight" &&
+        attachments.length > 1
+      ) {
+        event.preventDefault();
+        showNextAttachment();
+      }
+    }
+
+    window.addEventListener(
+      "keydown",
+      handleLightboxKeydown
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleLightboxKeydown
+      );
+
+      document.documentElement.style.overflow =
+        previousHtmlOverflow;
+
+      document.body.style.overflow =
+        previousBodyOverflow;
+    };
+  }, [
+    selectedAttachmentIndex,
+    attachments.length,
+    closeAttachment,
+    showPreviousAttachment,
+    showNextAttachment
+  ]);
+
+  async function updateStatus(status) {
+    setSaving(true);
+
+    try {
+      await onStatusChange(
+        project.id,
+        status,
+        password
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <article
+      className={`project-card ${
+        hasAlert ? "has-alert" : ""
+      }`}
+    >
+      <button
+        className="card-main"
+        type="button"
+        onClick={() =>
+          setOpen((current) => !current)
+        }
+        aria-expanded={open}
+      >
+        <div className="card-heading">
+          <div>
+            <div className="customer">
+              {project.customerName ||
+                "Customer not listed"}
+            </div>
+
+            <h2>
+              {project.propertyAddress ||
+                "Address not listed"}
+            </h2>
+          </div>
+
+          <span
+            className={`chevron ${
+              open ? "open" : ""
+            }`}
+            aria-hidden="true"
+          >
+            ⌄
+          </span>
+        </div>
+
+        <div className="summary">
+          <div>
+            <span className="eyebrow">
+              ORDER ITEMS
+            </span>
+
+            <div className="order-line">
+              <p>
+                {orderItems.text ||
+                  "No order items listed"}
+              </p>
+
+              {orderItems.packageInfo && (
+                <span
+                  className="package-preview"
+                  tabIndex="0"
+                >
+                  <span
+                    className="package-info-icon"
+                    aria-hidden="true"
+                  >
+                    i
+                  </span>
+
+                  <span
+                    className="package-tooltip"
+                    role="tooltip"
+                  >
+                    <strong>
+                      {orderItems.packageInfo.name}
+                    </strong>
+
+                    <span>
+                      {
+                        orderItems.packageInfo
+                          .includes
+                      }
+                    </span>
+                  </span>
+                </span>
+              )}
+            </div>
+          </div>
+
+          {hasAlert && (
+            <div className="alert">
+              <span aria-hidden="true">!</span>
+              Notes attached
+            </div>
+          )}
+        </div>
+      </button>
+
+      <div className="card-actions">
+        <StatusPill
+          value={project.status}
+          saving={saving}
+          onChange={updateStatus}
+        />
+
+        {project.aryeoOrderLink && (
+          <a
+            className="link-button aryeo-button"
+            href={project.aryeoOrderLink}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open Aryeo ↗
+          </a>
+        )}
+
+        {project.fotelloLink && (
+          <a
+            className="link-button"
+            href={project.fotelloLink}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open Fotello ↗
+          </a>
+        )}
+      </div>
+
+      {open && (
+        <div className="details">
+          <div className="note-grid">
+            <section
+              className={
+                project.customerNotes
+                  ? "note important"
+                  : "note"
+              }
+            >
+              <h3>Customer / Order Notes</h3>
+
+              <p>
+                {project.customerNotes ||
+                  "No customer notes."}
+              </p>
+            </section>
+
+            <section
+              className={
+                project.skylineNotes
+                  ? "note important"
+                  : "note"
+              }
+            >
+              <h3>Skyline Notes</h3>
+
+              <p>
+                {project.skylineNotes ||
+                  "No Skyline notes."}
+              </p>
+            </section>
+          </div>
+
+          <AttachmentGallery
+            attachments={attachments}
+            onSelect={
+              setSelectedAttachmentIndex
+            }
+          />
+        </div>
+      )}
+
+      {selectedAttachment &&
+        createPortal(
+          <div
+            className="lightbox"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Project attachment viewer"
+          >
+            <button
+              className="lightbox-backdrop"
+              type="button"
+              onClick={closeAttachment}
+              aria-label="Close attachment"
+            />
+
+            <div className="lightbox-content">
+              <button
+                className="lightbox-close"
+                type="button"
+                onClick={closeAttachment}
+                aria-label="Close attachment"
+              >
+                ×
+              </button>
+
+              {attachments.length > 1 && (
+                <>
+                  <button
+                    className="lightbox-arrow lightbox-arrow-left"
+                    type="button"
+                    onClick={
+                      showPreviousAttachment
+                    }
+                    aria-label="Previous attachment"
+                  >
+                    ‹
+                  </button>
+
+                  <button
+                    className="lightbox-arrow lightbox-arrow-right"
+                    type="button"
+                    onClick={showNextAttachment}
+                    aria-label="Next attachment"
+                  >
+                    ›
+                  </button>
+                </>
+              )}
+
+              <div className="lightbox-media">
+                {selectedAttachment.type?.startsWith(
+                  "image/"
+                ) ? (
+                  <img
+                    src={selectedAttachment.url}
+                    alt={
+                      selectedAttachment.filename ||
+                      "Project attachment"
+                    }
+                  />
+                ) : (
+                  <a
+                    href={selectedAttachment.url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open attachment
+                  </a>
+                )}
+              </div>
+
+              <div className="lightbox-caption">
+                {selectedAttachment.filename && (
+                  <p>
+                    {selectedAttachment.filename}
+                  </p>
+                )}
+
+                {attachments.length > 1 && (
+                  <span>
+                    {selectedAttachmentIndex + 1} of{" "}
+                    {attachments.length}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </article>
+  );
 }
 
-.lightbox-caption p { margin: 10px 0 0; }
+function HoursControl({
+  hours,
+  weeklyHours,
+  onSave,
+  saving
+}) {
+  const [draftHours, setDraftHours] = useState(
+    hours === null ||
+      hours === undefined ||
+      hours === ""
+      ? ""
+      : String(hours)
+  );
 
-.lightbox-caption span {
-  flex: 0 0 auto;
-  margin-top: 10px;
-  color: #a9bec8;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: .08em;
-  text-transform: uppercase;
+  useEffect(() => {
+    setDraftHours(
+      hours === null ||
+        hours === undefined ||
+        hours === ""
+        ? ""
+        : String(hours)
+    );
+  }, [hours]);
+
+  function submitHours(event) {
+    event.preventDefault();
+
+    const parsed =
+      draftHours === ""
+        ? 0
+        : Number(draftHours);
+
+    if (
+      Number.isNaN(parsed) ||
+      parsed < 0 ||
+      parsed > 24
+    ) {
+      return;
+    }
+
+    onSave(parsed);
+  }
+
+  return (
+    <form
+      className="hours-inline"
+      onSubmit={submitHours}
+    >
+      <label className="hours-input-group">
+        <span>Hours</span>
+
+        <input
+          type="number"
+          min="0"
+          max="24"
+          step="0.25"
+          inputMode="decimal"
+          value={draftHours}
+          onChange={(event) =>
+            setDraftHours(event.target.value)
+          }
+          aria-label="Hours worked today"
+        />
+      </label>
+
+      <button
+        type="submit"
+        className="save-hours"
+        disabled={saving}
+      >
+        {saving ? "Saving…" : "Save"}
+      </button>
+
+      <div className="weekly-hours">
+        <strong>{weeklyHours || 0}</strong>
+        <span>Hours this week</span>
+      </div>
+    </form>
+  );
 }
-.empty { padding: 72px 20px; text-align: center; border: 1px dashed #bed0d9; border-radius: 18px; background: rgba(255,255,255,.65); }
-.empty-check { width: 54px; height: 54px; margin: 0 auto 14px; display: grid; place-items: center; color: white; background: var(--green); border-radius: 50%; font-size: 27px; }
-.empty h2 { margin: 0; color: var(--navy); }
-.empty p { color: var(--muted); }
-.spinner { width: 34px; height: 34px; margin: 0 auto 18px; border: 3px solid #d8e6eb; border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.error-banner { margin-bottom: 15px; padding: 13px 16px; color: #8b2f2f; background: #fff0f0; border: 1px solid #f2c4c4; border-radius: 12px; }
-footer { display: flex; justify-content: space-between; margin-top: 22px; color: var(--muted); font-size: 12px; }
-footer button { color: var(--muted); border: 0; background: transparent; text-decoration: underline; cursor: pointer; }
 
-.login-shell { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: linear-gradient(135deg, #061725, #0b3347); }
-.login-card { width: min(440px, 100%); padding: 42px; color: var(--ink); background: white; border-radius: 24px; box-shadow: 0 30px 90px rgba(0,0,0,.3); }
-.login-card .brand-mark { margin-bottom: 26px; }
-.login-card h1 { margin: 0; color: var(--navy); font-size: 42px; letter-spacing: -.04em; }
-.login-copy { margin: 10px 0 26px; color: var(--muted); line-height: 1.55; }
-.login-card label { display: grid; gap: 8px; color: #425867; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
-.login-card input { width: 100%; height: 48px; padding: 0 13px; border: 1px solid #c9d7de; border-radius: 10px; outline: none; }
-.login-card input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(16,150,168,.12); }
-.login-card button { width: 100%; height: 49px; margin-top: 14px; color: white; background: var(--blue); border: 0; border-radius: 10px; font-weight: 850; cursor: pointer; }
-.form-error { color: #ae3030; font-size: 13px; }
+export default function Home() {
+  const [password, setPassword] = useState("");
+  const [draftPassword, setDraftPassword] =
+    useState("");
 
-@media (max-width: 720px) {
-  .topbar { height: 66px; padding: 0 16px; }
-  .live { display: none; }
-  .dashboard { width: min(100% - 24px, 1180px); padding-top: 30px; }
-  .hero { display: grid; gap: 22px; }
-  .hero h1 { font-size: 42px; }
-  .metrics { width: 100%; }
-  .metrics div { flex: 1; min-width: 0; padding: 4px 8px; }
-  .card-main { padding: 17px 17px 11px; }
-  .card-actions { padding: 0 17px 15px; }
-  .card-actions > * { flex: 1 1 auto; justify-content: center; }
-  .summary { align-items: flex-start; flex-direction: column; }
-  .note-grid { grid-template-columns: 1fr; }
-  .details { padding: 18px; }
-  .login-card { padding: 32px 24px; }
-  .package-tooltip { left: 100%; transform: translate(-100%, 5px); }
-  .package-preview:hover .package-tooltip,
-  .package-preview:focus .package-tooltip,
-  .package-preview:focus-within .package-tooltip { transform: translate(-100%, 0); }
-  .package-tooltip::after { left: calc(100% - 10px); }
-  .lightbox-content { inset: 14px; }
-  .lightbox-close { top: -8px; right: -6px; }
-  .lightbox-arrow { width: 46px; height: 46px; font-size: 38px; }
-  .lightbox-previous { left: 8px; }
-  .lightbox-next { right: 8px; }
+  const [projects, setProjects] = useState([]);
+  const [projectDate, setProjectDate] =
+    useState("");
+
+  const [hours, setHours] = useState("");
+  const [weeklyHours, setWeeklyHours] =
+    useState(0);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [savingHours, setSavingHours] =
+    useState(false);
+
+  const [error, setError] = useState("");
+  const [hoursMessage, setHoursMessage] =
+    useState("");
+
+  const [lastUpdated, setLastUpdated] =
+    useState(null);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(
+      "skylineEditorPassword"
+    );
+
+    if (saved) {
+      setPassword(saved);
+    }
+  }, []);
+
+  const loadProjects = useCallback(
+    async (secret, quiet = false) => {
+      if (!secret) {
+        return;
+      }
+
+      if (!quiet) {
+        setLoading(true);
+      }
+
+      try {
+        const response = await fetch(
+          "/api/projects",
+          {
+            headers: {
+              "x-editor-password": secret
+            },
+            cache: "no-store"
+          }
+        );
+
+        if (response.status === 401) {
+          throw new Error(
+            "Incorrect access password."
+          );
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            "The dashboard could not load Airtable."
+          );
+        }
+
+        const data = await response.json();
+
+        setProjects(data.projects || []);
+        setProjectDate(data.date || "");
+        setHours(data.hours ?? "");
+        setWeeklyHours(data.weeklyHours ?? 0);
+        setLastUpdated(new Date());
+        setError("");
+      } catch (loadError) {
+        setError(loadError.message);
+
+        if (
+          loadError.message.includes(
+            "Incorrect"
+          )
+        ) {
+          window.localStorage.removeItem(
+            "skylineEditorPassword"
+          );
+
+          setPassword("");
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!password) {
+      return;
+    }
+
+    loadProjects(password);
+
+    const timer = window.setInterval(
+      () => loadProjects(password, true),
+      60000
+    );
+
+    return () =>
+      window.clearInterval(timer);
+  }, [password, loadProjects]);
+
+  async function changeStatus(
+    id,
+    status,
+    secret
+  ) {
+    const previous = projects;
+
+    setProjects((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status
+            }
+          : item
+      )
+    );
+
+    const response = await fetch(
+      `/api/projects/${id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+          "x-editor-password": secret
+        },
+        body: JSON.stringify({
+          status
+        })
+      }
+    );
+
+    if (!response.ok) {
+      setProjects(previous);
+
+      setError(
+        "That status did not save. Please try again."
+      );
+
+      throw new Error(
+        "Status update failed"
+      );
+    }
+
+    setError("");
+  }
+
+  async function saveHours(value) {
+    setSavingHours(true);
+    setHoursMessage("");
+
+    try {
+      const response = await fetch(
+        "/api/hours",
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-editor-password": password
+          },
+          body: JSON.stringify({
+            date: projectDate,
+            hours: value
+          })
+        }
+      );
+
+      if (response.status === 401) {
+        throw new Error(
+          "Incorrect access password."
+        );
+      }
+
+      if (!response.ok) {
+        const data = await response
+          .json()
+          .catch(() => ({}));
+
+        throw new Error(
+          data.error ||
+            "The hours did not save."
+        );
+      }
+
+      const data = await response.json();
+
+      setHours(data.hours ?? value);
+      setWeeklyHours(
+        data.weeklyHours ?? weeklyHours
+      );
+
+      setHoursMessage("Saved");
+      setError("");
+    } catch (saveError) {
+      setError(saveError.message);
+    } finally {
+      setSavingHours(false);
+    }
+  }
+
+  const counts = useMemo(
+    () => ({
+      total: projects.length,
+      editing: projects.filter(
+        (item) =>
+          item.status ===
+          "Ready for Editing"
+      ).length,
+      complete: projects.filter(
+        (item) =>
+          item.status === "Complete"
+      ).length
+    }),
+    [projects]
+  );
+
+  function unlock(event) {
+    event.preventDefault();
+
+    const value = draftPassword.trim();
+
+    if (!value) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      "skylineEditorPassword",
+      value
+    );
+
+    setPassword(value);
+  }
+
+  function displayedDate() {
+    if (!projectDate) {
+      return new Date();
+    }
+
+    const [
+      year,
+      month,
+      day
+    ] = projectDate
+      .split("-")
+      .map(Number);
+
+    return new Date(
+      year,
+      month - 1,
+      day,
+      12
+    );
+  }
+
+  if (!password) {
+    return (
+      <main className="login-shell">
+        <form
+          className="login-card"
+          onSubmit={unlock}
+        >
+          <div className="brand-mark">S</div>
+
+          <p className="kicker">
+            SKYLINE IMAGERY
+          </p>
+
+          <h1>Editor Hub</h1>
+
+          <p className="login-copy">
+            Enter the private editor password
+            to view today’s projects.
+          </p>
+
+          <label>
+            Access password
+
+            <input
+              type="password"
+              value={draftPassword}
+              onChange={(event) =>
+                setDraftPassword(
+                  event.target.value
+                )
+              }
+              autoComplete="current-password"
+              autoFocus
+            />
+          </label>
+
+          <button type="submit">
+            Open Today’s Projects
+          </button>
+
+          {error && (
+            <p className="form-error">
+              {error}
+            </p>
+          )}
+        </form>
+      </main>
+    );
+  }
+
+  return (
+    <main>
+      <header className="topbar">
+        <div className="brand">
+          <div className="brand-mark small">
+            S
+          </div>
+
+          <div>
+            <strong>Skyline</strong>
+            <span>Editor Hub</span>
+          </div>
+        </div>
+
+        <div className="top-actions">
+          <span className="live">
+            <i />
+            Live
+          </span>
+
+          <button
+            className="refresh"
+            type="button"
+            onClick={() =>
+              loadProjects(password)
+            }
+            disabled={loading}
+          >
+            {loading
+              ? "Refreshing…"
+              : "Refresh"}
+          </button>
+        </div>
+      </header>
+
+      <div className="dashboard">
+        <section className="hero">
+          <div className="hero-copy">
+            <p className="kicker">
+              TODAY’S WORKFLOW
+            </p>
+
+            <h1>Today’s Projects</h1>
+
+            <p className="date">
+              {new Intl.DateTimeFormat(
+                "en-US",
+                {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric"
+                }
+              ).format(displayedDate())}
+            </p>
+          </div>
+
+          <div className="hero-controls">
+            <div className="metrics">
+              <div>
+                <strong>
+                  {counts.total}
+                </strong>
+                <span>Projects</span>
+              </div>
+
+              <div>
+                <strong>
+                  {counts.editing}
+                </strong>
+                <span>Editing</span>
+              </div>
+
+              <div>
+                <strong>
+                  {counts.complete}
+                </strong>
+                <span>Complete</span>
+              </div>
+            </div>
+
+            <HoursControl
+              hours={hours}
+              weeklyHours={weeklyHours}
+              onSave={saveHours}
+              saving={savingHours}
+            />
+
+            {hoursMessage && (
+              <span className="hours-message">
+                {hoursMessage}
+              </span>
+            )}
+          </div>
+        </section>
+
+        {error && (
+          <div className="error-banner">
+            {error}
+          </div>
+        )}
+
+        <section
+          className="project-list"
+          aria-live="polite"
+        >
+          {loading && !projects.length ? (
+            <div className="empty">
+              <div className="spinner" />
+
+              <h2>
+                Loading today’s projects…
+              </h2>
+            </div>
+          ) : projects.length ? (
+            projects.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                password={password}
+                onStatusChange={
+                  changeStatus
+                }
+              />
+            ))
+          ) : (
+            <div className="empty">
+              <div className="empty-check">
+                ✓
+              </div>
+
+              <h2>
+                No active projects today
+              </h2>
+
+              <p>
+                Anything scheduled later will
+                appear here automatically.
+              </p>
+            </div>
+          )}
+        </section>
+
+        <footer>
+          <span>
+            {lastUpdated
+              ? `Updated ${lastUpdated.toLocaleTimeString(
+                  [],
+                  {
+                    hour: "numeric",
+                    minute: "2-digit"
+                  }
+                )}`
+              : ""}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => {
+              window.localStorage.removeItem(
+                "skylineEditorPassword"
+              );
+
+              setPassword("");
+            }}
+          >
+            Lock dashboard
+          </button>
+        </footer>
+      </div>
+    </main>
+  );
 }
