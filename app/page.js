@@ -144,6 +144,7 @@ function ProjectCard({
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
   const [
     selectedAttachmentIndex,
     setSelectedAttachmentIndex
@@ -587,7 +588,7 @@ function HoursControl({
       onSubmit={submitHours}
     >
       <label className="hours-input-group">
-        <span>Hours</span>
+        <span>Hour</span>
 
         <input
           type="number"
