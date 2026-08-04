@@ -524,3 +524,258 @@ footer button { color: var(--muted); border: 0; background: transparent; text-de
     margin-left: auto;
   }
 }
+/* =========================================================
+   COMBINED METRICS + HOURS BAR
+   ========================================================= */
+
+.hero-controls {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 0;
+}
+
+.metrics {
+  display: flex;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-right: 0;
+  border-radius: 16px 0 0 16px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.metrics div {
+  min-width: 100px;
+  min-height: 94px;
+  padding: 15px 22px;
+  display: grid;
+  align-content: center;
+  text-align: center;
+  border-left: 1px solid var(--line);
+}
+
+.metrics div:first-child {
+  border-left: 0;
+}
+
+.metrics strong {
+  color: var(--navy);
+  font-size: 25px;
+  line-height: 1;
+}
+
+.metrics span {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.hours-inline {
+  min-height: 94px;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 0;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 0 16px 16px 0;
+}
+
+.hours-input-group {
+  min-width: 240px;
+  padding: 15px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--muted);
+  border-right: 1px solid var(--line);
+}
+
+/* Displays HOURS even if page.js currently says Hour */
+
+.hours-input-group > span {
+  font-size: 0;
+}
+
+.hours-input-group > span::after {
+  content: "HOURS";
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.hours-input-group input {
+  width: 74px;
+  height: 46px;
+  padding: 0 10px;
+  color: var(--navy);
+  background: #f3f9fb;
+  border: 1px solid #c4dbe4;
+  border-radius: 11px;
+  outline: none;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 850;
+}
+
+.hours-input-group input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(16, 150, 168, 0.12);
+}
+
+.save-hours {
+  height: 46px;
+  padding: 0 17px;
+  color: white;
+  background: var(--blue);
+  border: 0;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.save-hours:hover {
+  background: #087f90;
+}
+
+.save-hours:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.weekly-hours {
+  min-width: 150px;
+  padding: 13px 20px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 7px;
+  border: 0;
+  white-space: normal;
+  text-align: center;
+}
+
+.weekly-hours strong {
+  color: var(--navy);
+  font-size: 25px;
+  line-height: 1;
+}
+
+.weekly-hours span {
+  max-width: 110px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.3;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.hours-message {
+  position: absolute;
+  margin-top: 102px;
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+
+/* TABLET */
+
+@media (max-width: 1050px) {
+  .hero {
+    align-items: flex-start;
+  }
+
+  .hero-controls {
+    flex-wrap: wrap;
+    width: min(520px, 100%);
+  }
+
+  .metrics {
+    width: 100%;
+    border-right: 1px solid var(--line);
+    border-radius: 16px 16px 0 0;
+  }
+
+  .metrics div {
+    flex: 1;
+  }
+
+  .hours-inline {
+    width: 100%;
+    border-top: 0;
+    border-radius: 0 0 16px 16px;
+  }
+
+  .hours-input-group {
+    flex: 1;
+  }
+
+  .hours-message {
+    position: static;
+    width: 100%;
+    margin-top: 5px;
+    text-align: right;
+  }
+}
+
+
+/* MOBILE */
+
+@media (max-width: 720px) {
+  .hero-controls {
+    width: 100%;
+  }
+
+  .metrics div {
+    min-width: 0;
+    min-height: 78px;
+    padding: 11px 7px;
+  }
+
+  .metrics strong {
+    font-size: 22px;
+  }
+
+  .hours-inline {
+    min-height: 78px;
+  }
+
+  .hours-input-group {
+    min-width: 0;
+    padding: 10px;
+    gap: 7px;
+  }
+
+  .hours-input-group input {
+    width: 58px;
+    height: 40px;
+  }
+
+  .save-hours {
+    height: 40px;
+    padding: 0 11px;
+  }
+
+  .weekly-hours {
+    min-width: 106px;
+    padding: 10px 8px;
+  }
+
+  .weekly-hours strong {
+    font-size: 22px;
+  }
+
+  .weekly-hours span {
+    max-width: 90px;
+    font-size: 9px;
+  }
+}
